@@ -237,13 +237,7 @@ Loop:
 			// absorb
 		default:
 			l.backup()
-			word := l.input[l.start:l.pos]
-			switch {
-			case key[word] > itemKeyword:
-				l.emit(key[word])
-			default:
-				l.emit(itemName)
-			}
+			l.emit(itemName)
 			break Loop
 		}
 	}
@@ -264,13 +258,7 @@ Loop:
 			// absorb
 		default:
 			l.backup()
-			word := l.input[l.start:l.pos]
-			switch {
-			case key[word] > itemKeyword:
-				l.emit(key[word])
-			default:
-				l.emit(itemParamName)
-			}
+			l.emit(itemParamName)
 			break Loop
 		}
 	}
@@ -303,13 +291,7 @@ func lexParamValue(l *lexer) stateFn {
 				// absorb
 			default:
 				l.backup()
-				word := l.input[l.start:l.pos]
-				switch {
-				case key[word] > itemKeyword:
-					l.emit(key[word])
-				default:
-					l.emit(itemParamValue)
-				}
+				l.emit(itemParamValue)
 				break QLoop
 			}
 		}
@@ -330,13 +312,7 @@ func lexParamValue(l *lexer) stateFn {
 				// absorb
 			default:
 				l.backup()
-				word := l.input[l.start:l.pos]
-				switch {
-				case key[word] > itemKeyword:
-					l.emit(key[word])
-				default:
-					l.emit(itemParamValue)
-				}
+				l.emit(itemParamValue)
 				break Loop
 			}
 		}
@@ -357,13 +333,7 @@ Loop:
 			// absorb
 		default:
 			l.backup()
-			word := l.input[l.start:l.pos]
-			switch {
-			case key[word] > itemKeyword:
-				l.emit(key[word])
-			default:
-				l.emit(itemValue)
-			}
+			l.emit(itemValue)
 			break Loop
 		}
 	}
