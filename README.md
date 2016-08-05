@@ -1,5 +1,7 @@
 # iCalendar lexer/parser
 
+[![Build Status](https://travis-ci.org/Xotelia/ical.svg?branch=master)](https://travis-ci.org/Xotelia/ical)
+
 Golang iCalendar lexer/parser based on RFC5545.
 
 ## Usage
