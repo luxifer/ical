@@ -22,5 +22,4 @@ calendar, err := ical.Parse(filename)
 * Implements VJOURNAL
 * Implements VFREEBUSY
 * Implements VTIMEZONE
-* Implements VALARM
 * Implements Missing Components Properties

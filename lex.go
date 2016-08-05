@@ -37,13 +37,13 @@ const (
 	itemEOF
 	itemLineEnd
 
-	// Literals
+	// Properties
 	itemName
 	itemParamName
 	itemParamValue
 	itemValue
 
-	// Misc
+	// Punctuation
 	itemColon     // :
 	itemSemiColon // ;
 	itemEqual     // =
@@ -52,11 +52,13 @@ const (
 	// Keyword
 	itemKeyword // delimit the keyword list
 
-	// Delimit
+	// Delimiters
 	itemBeginVCalendar
 	itemEndVCalendar
 	itemBeginVEvent
 	itemEndVEvent
+	itemBeginVAlarm
+	itemEndVAlarm
 )
 
 var key = map[string]itemType{
@@ -64,6 +66,8 @@ var key = map[string]itemType{
 	"END:VCALENDAR":   itemEndVCalendar,
 	"BEGIN:VEVENT":    itemBeginVEvent,
 	"END:VEVENT":      itemEndVEvent,
+	"BEGIN:VALARM":    itemBeginVAlarm,
+	"END:VALARM":      itemEndVAlarm,
 }
 
 const eof = -1
@@ -158,6 +162,8 @@ const (
 	endVCalendar   = "END:VCALENDAR"
 	beginVEvent    = "BEGIN:VEVENT"
 	endVEvent      = "END:VEVENT"
+	beginValarm    = "BEGIN:VALARM"
+	endVAlarm      = "END:VALARM"
 )
 
 func lexContentLine(l *lexer) stateFn {
@@ -227,6 +233,17 @@ func lexName(l *lexer) stateFn {
 	if strings.HasPrefix(l.input[l.pos:], endVEvent) {
 		l.pos += len(endVEvent)
 		l.emit(itemEndVEvent)
+		return lexNewLine
+	}
+
+	if strings.HasPrefix(l.input[l.pos:], beginValarm) {
+		l.pos += len(beginValarm)
+		l.emit(itemBeginVAlarm)
+		return lexNewLine
+	}
+	if strings.HasPrefix(l.input[l.pos:], endVAlarm) {
+		l.pos += len(endVAlarm)
+		l.emit(itemEndVAlarm)
 		return lexNewLine
 	}
 

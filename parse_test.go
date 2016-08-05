@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var calendarList = []string{"fixtures/example.ics"}
+var calendarList = []string{"fixtures/example.ics", "fixtures/with-alarm.ics"}
 
 func TestParse(t *testing.T) {
 	for _, filename := range calendarList {

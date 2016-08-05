@@ -22,12 +22,20 @@ type Calendar struct {
 // An Event represent a VEVENT component in an iCalendar
 type Event struct {
 	Properties  []*Property
+	Alarms      []*Alarm
 	UID         string
 	Timestamp   time.Time
 	StartDate   time.Time
 	EndDate     time.Time
 	Summary     string
 	Description string
+}
+
+// An Alarm represent a VALARM component in an iCalendar
+type Alarm struct {
+	Properties []*Property
+	Action     string
+	Trigger    string
 }
 
 // A Property represent an unparsed property in an iCalendar component
@@ -49,6 +57,7 @@ type parser struct {
 	scope     int
 	c         *Calendar
 	v         *Event
+	a         *Alarm
 }
 
 // Parse transforms the raw iCalendar into a Calendar struct
@@ -87,7 +96,15 @@ func NewProperty() *Property {
 func NewEvent() *Event {
 	v := &Event{}
 	v.Properties = make([]*Property, 0)
+	v.Alarms = make([]*Alarm, 0)
 	return v
+}
+
+// NewAlarm creates an empty Alarm
+func NewAlarm() *Alarm {
+	a := &Alarm{}
+	a.Properties = make([]*Property, 0)
+	return a
 }
 
 // NewParam creates an empty Param
@@ -127,11 +144,22 @@ func (p *parser) peek() item {
 	return p.token[0]
 }
 
+// enterScope switch scope between Calendar, Event and Alarm
+func (p *parser) enterScope() {
+	p.scope++
+}
+
+// leaveScope returns to previous scope
+func (p *parser) leaveScope() {
+	p.scope--
+}
+
 // parse
 
 const (
 	scopeCalendar int = iota
 	scopeEvent
+	scopeAlarm
 )
 
 const (
@@ -166,45 +194,79 @@ func (p *parser) parse() (*Calendar, error) {
 	return p.c, nil
 }
 
-// scanContentLine parses a content-line of a calendar
-func (p *parser) scanContentLine() error {
-	name := p.next()
-
-	if name.typ == itemBeginVEvent {
+// scanDelimiter switch scope and validate related component
+func (p *parser) scanDelimiter(delim item) error {
+	if delim.typ == itemBeginVEvent {
 		if err := validateCalendar(p.c); err != nil {
 			return err
 		}
 
 		p.v = NewEvent()
-		p.scope = scopeEvent
+		p.enterScope()
 
 		if item := p.next(); item.typ != itemLineEnd {
 			return fmt.Errorf("found %s, expected CRLF", item)
 		}
-
-		return p.scanContentLine()
 	}
 
-	if name.typ == itemEndVEvent {
+	if delim.typ == itemEndVEvent {
+		if p.scope > scopeEvent {
+			return fmt.Errorf("found %s, expeced END:VALARM", delim)
+		}
+
 		if err := validateEvent(p.v); err != nil {
 			return err
 		}
 
 		p.c.Events = append(p.c.Events, p.v)
-		p.scope = scopeCalendar
+		p.leaveScope()
 
 		if item := p.next(); item.typ != itemLineEnd {
 			return fmt.Errorf("found %s, expected CRLF", item)
 		}
-
-		return p.scanContentLine()
 	}
 
-	if name.typ == itemEndVCalendar {
-		if p.scope == scopeEvent {
-			return fmt.Errorf("found %s, expeced END:VEVENT", name)
+	if delim.typ == itemBeginVAlarm {
+		p.a = NewAlarm()
+		p.enterScope()
+
+		if item := p.next(); item.typ != itemLineEnd {
+			return fmt.Errorf("found %s, expected CRLF", item)
+		}
+	}
+
+	if delim.typ == itemEndVAlarm {
+		if err := validateAlarm(p.a); err != nil {
+			return err
+		}
+
+		p.v.Alarms = append(p.v.Alarms, p.a)
+		p.leaveScope()
+
+		if item := p.next(); item.typ != itemLineEnd {
+			return fmt.Errorf("found %s, expected CRLF", item)
+		}
+	}
+
+	if delim.typ == itemEndVCalendar {
+		if p.scope > scopeCalendar {
+			return fmt.Errorf("found %s, expeced END:VEVENT", delim)
 		}
 		return errorDone
+	}
+
+	return nil
+}
+
+// scanContentLine parses a content-line of a calendar
+func (p *parser) scanContentLine() error {
+	name := p.next()
+
+	if name.typ > itemKeyword {
+		if err := p.scanDelimiter(name); err != nil {
+			return err
+		}
+		return p.scanContentLine()
 	}
 
 	if !isItemName(name) {
@@ -236,8 +298,10 @@ func (p *parser) scanContentLine() error {
 
 	if p.scope == scopeCalendar {
 		p.c.Properties = append(p.c.Properties, prop)
-	} else {
+	} else if p.scope == scopeEvent {
 		p.v.Properties = append(p.v.Properties, prop)
+	} else if p.scope == scopeAlarm {
+		p.a.Properties = append(p.a.Properties, prop)
 	}
 
 	return nil
@@ -350,7 +414,7 @@ func validateEvent(v *Event) error {
 
 		if prop.Name == "DTSTART" {
 			v.StartDate, _ = parseDate(prop)
-			uniqueCount["DTSTATR"]++
+			uniqueCount["DTSTART"]++
 			requiredCount++
 		}
 
@@ -392,6 +456,37 @@ func validateEvent(v *Event) error {
 
 	if !hasProperty("DTEND", v.Properties) {
 		v.EndDate = v.StartDate.Add(time.Hour * 24) // add one day to start date
+	}
+
+	return nil
+}
+
+// validateAlarm validate alarm props
+func validateAlarm(a *Alarm) error {
+	requiredCount := 0
+	uniqueCount := make(map[string]int)
+	for _, prop := range a.Properties {
+		if prop.Name == "ACTION" {
+			a.Action = prop.Value
+			requiredCount++
+			uniqueCount["ACTION"]++
+		}
+
+		if prop.Name == "TRIGGER" {
+			a.Trigger = prop.Value
+			requiredCount++
+			uniqueCount["TRIGGER"]++
+		}
+	}
+
+	if requiredCount != 2 {
+		return fmt.Errorf("missing either required property \"action / trigger /\"")
+	}
+
+	for key, value := range uniqueCount {
+		if value > 1 {
+			return fmt.Errorf("\"%s\" property must not occur more than once", key)
+		}
 	}
 
 	return nil
