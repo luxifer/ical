@@ -280,9 +280,8 @@ Loop:
 	if r == '=' {
 		l.emit(itemEqual)
 		return lexParamValue
-	} else {
-		return l.errorf("missing \"=\" sign after param name, got %#U", r)
 	}
+	return l.errorf("missing \"=\" sign after param name, got %#U", r)
 }
 
 // lexParamValue scans the param-value in the content line

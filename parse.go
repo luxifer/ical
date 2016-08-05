@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// A Calendar represents the whole iCalendar
 type Calendar struct {
 	Properties []*Property
 	Events     []*Event
@@ -18,9 +19,10 @@ type Calendar struct {
 	Method     string
 }
 
+// An Event represent a VEVENT component in an iCalendar
 type Event struct {
 	Properties  []*Property
-	Uid         string
+	UID         string
 	Timestamp   time.Time
 	StartDate   time.Time
 	EndDate     time.Time
@@ -28,12 +30,14 @@ type Event struct {
 	Description string
 }
 
+// A Property represent an unparsed property in an iCalendar component
 type Property struct {
 	Name   string
 	Params map[string]*Param
 	Value  string
 }
 
+// A Param represent a list of param for a property
 type Param struct {
 	Values []string
 }
@@ -136,7 +140,7 @@ const (
 	dateTimeLayoutLocalized = "20060102T150405"
 )
 
-var done = errors.New("done")
+var errorDone = errors.New("done")
 
 func (p *parser) parse() (*Calendar, error) {
 	if item := p.next(); item.typ != itemBeginVCalendar {
@@ -150,7 +154,7 @@ func (p *parser) parse() (*Calendar, error) {
 	for {
 		err := p.scanContentLine()
 
-		if err == done {
+		if err == errorDone {
 			break
 		}
 
@@ -199,9 +203,8 @@ func (p *parser) scanContentLine() error {
 	if name.typ == itemEndVCalendar {
 		if p.scope == scopeEvent {
 			return fmt.Errorf("found %s, expeced END:VEVENT", name)
-		} else {
-			return done
 		}
+		return errorDone
 	}
 
 	if !isItemName(name) {
@@ -222,7 +225,7 @@ func (p *parser) scanContentLine() error {
 	value := p.next()
 
 	if value.typ != itemValue {
-		fmt.Errorf("found %s, expected a value", value)
+		return fmt.Errorf("found %s, expected a value", value)
 	}
 
 	prop.Value = value.val
@@ -334,7 +337,7 @@ func validateEvent(v *Event) error {
 	uniqueCount := make(map[string]int)
 	for _, prop := range v.Properties {
 		if prop.Name == "UID" {
-			v.Uid = prop.Value
+			v.UID = prop.Value
 			uniqueCount["UID"]++
 			requiredCount++
 		}
@@ -407,6 +410,7 @@ func hasProperty(name string, properties []*Property) bool {
 // parseDate transform an ical date into a time.Time
 func parseDate(prop *Property) (time.Time, error) {
 	layout := dateTimeLayoutUTC
+
 	if val, ok := prop.Params["VALUE"]; ok {
 		switch val.Values[0] {
 		case "DATE":
@@ -416,7 +420,7 @@ func parseDate(prop *Property) (time.Time, error) {
 	if tz, ok := prop.Params["TZID"]; ok {
 		loc, _ := time.LoadLocation(tz.Values[0])
 		return time.ParseInLocation(dateTimeLayoutLocalized, prop.Value, loc)
-	} else {
-		return time.Parse(layout, prop.Value)
 	}
+
+	return time.Parse(layout, prop.Value)
 }
