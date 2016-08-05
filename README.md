@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Xotelia/ical.svg?branch=master)](https://travis-ci.org/Xotelia/ical)
 
-Golang iCalendar lexer/parser based on RFC5545.
+Golang iCalendar lexer/parser based on [RFC5545](https://tools.ietf.org/html/rfc5545).
 
 ## Usage
 
