@@ -38,14 +38,36 @@ var dateList = []*Property{
 		},
 		Value: "19980119T020000",
 	},
+	// Floating (local) date-time (no time zone)
+	&Property{
+		Name: "DSTART",
+		Params: map[string]*Param{
+			"VALUE": &Param{
+				Values: []string{"DATE"},
+			},
+		},
+		Value: "19980119T020000",
+	},
+	// Date-time in UTC
+	&Property{
+		Name: "DSTART",
+		Params: map[string]*Param{
+			"VALUE": &Param{
+				Values: []string{"DATE"},
+			},
+		},
+		Value: "19980119T070000Z",
+	},
 }
 
 func TestParseDate(t *testing.T) {
 	for _, prop := range dateList {
-		_, err := parseDate(prop)
+		out, err := parseDate(prop)
 
 		if err != nil {
 			t.Error(err)
+		} else {
+			t.Logf("in: %+v, out: %s", prop.Value, out)
 		}
 	}
 }

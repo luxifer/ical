@@ -504,17 +504,26 @@ func hasProperty(name string, properties []*Property) bool {
 
 // parseDate transform an ical date into a time.Time
 func parseDate(prop *Property) (time.Time, error) {
-	layout := dateTimeLayoutUTC
+	if tz, ok := prop.Params["TZID"]; ok {
+		loc, _ := time.LoadLocation(tz.Values[0])
+		return time.ParseInLocation(dateTimeLayoutLocalized, prop.Value, loc)
+	}
+
+	layout := dateTimeLayoutLocalized
+
+	if strings.HasSuffix(prop.Value, "Z") {
+		return time.Parse(dateTimeLayoutUTC, prop.Value)
+	}
+
+	if len(prop.Value) == 15 {
+		return time.Parse(dateTimeLayoutLocalized, prop.Value)
+	}
 
 	if val, ok := prop.Params["VALUE"]; ok {
 		switch val.Values[0] {
 		case "DATE":
 			layout = dateLayout
 		}
-	}
-	if tz, ok := prop.Params["TZID"]; ok {
-		loc, _ := time.LoadLocation(tz.Values[0])
-		return time.ParseInLocation(dateTimeLayoutLocalized, prop.Value, loc)
 	}
 
 	return time.Parse(layout, prop.Value)
