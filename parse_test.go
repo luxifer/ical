@@ -2,7 +2,9 @@ package ical
 
 import (
 	"os"
+	"reflect"
 	"testing"
+	"time"
 )
 
 var calendarList = []string{"fixtures/example.ics", "fixtures/with-alarm.ics"}
@@ -10,7 +12,7 @@ var calendarList = []string{"fixtures/example.ics", "fixtures/with-alarm.ics"}
 func TestParse(t *testing.T) {
 	for _, filename := range calendarList {
 		file, _ := os.Open(filename)
-		_, err := Parse(file)
+		_, err := Parse(file, nil)
 		file.Close()
 
 		if err != nil {
@@ -19,55 +21,98 @@ func TestParse(t *testing.T) {
 	}
 }
 
-var dateList = []*Property{
-	&Property{
-		Name: "DTSTART",
-		Params: map[string]*Param{
-			"VALUE": &Param{
-				Values: []string{"DATE"},
+func Test_parseDate(t *testing.T) {
+	loc, _ := time.LoadLocation("America/New_York")
+	type args struct {
+		prop *Property
+		l    *time.Location
+	}
+	tests := []struct {
+		name string
+		args args
+		want time.Time
+	}{
+		{
+			name: "Property with only date layout",
+			args: args{
+				prop: &Property{
+					Name: "DTSTART",
+					Params: map[string]*Param{
+						"VALUE": &Param{
+							Values: []string{"DATE"},
+						},
+					},
+					Value: "19980119",
+				},
+				l: time.Local,
 			},
+			want: time.Date(1998, time.January, 19, 0, 0, 0, 0, time.Local),
 		},
-		Value: "19980119",
-	},
-	&Property{
-		Name: "DTSTART",
-		Params: map[string]*Param{
-			"TZID": &Param{
-				Values: []string{"America/New_York"},
+		{
+			name: "Floating (local) date-time (no time zone)",
+			args: args{
+				prop: &Property{
+					Name: "DTSTART",
+					Params: map[string]*Param{
+						"TZID": &Param{
+							Values: []string{"America/New_York"},
+						},
+					},
+					Value: "19980119T020000",
+				},
+				l: time.Local,
 			},
+			want: time.Date(1998, time.January, 19, 2, 0, 0, 0, loc),
 		},
-		Value: "19980119T020000",
-	},
-	// Floating (local) date-time (no time zone)
-	&Property{
-		Name: "DSTART",
-		Params: map[string]*Param{
-			"VALUE": &Param{
-				Values: []string{"DATE"},
+		{
+			name: "Date with no layout indication",
+			args: args{
+				prop: &Property{
+					Name:  "DSTART",
+					Value: "19980119T020000",
+				},
+				l: time.Local,
 			},
+			want: time.Date(1998, time.January, 19, 2, 0, 0, 0, time.Local),
 		},
-		Value: "19980119T020000",
-	},
-	// Date-time in UTC
-	&Property{
-		Name: "DSTART",
-		Params: map[string]*Param{
-			"VALUE": &Param{
-				Values: []string{"DATE"},
+		{
+			name: "Date with no layout and in UTC",
+			args: args{
+				prop: &Property{
+					Name:  "DSTART",
+					Value: "19980119T070000Z",
+				},
+				l: time.Local,
 			},
+			want: time.Date(1998, time.January, 19, 7, 0, 0, 0, time.UTC),
 		},
-		Value: "19980119T070000Z",
-	},
-}
-
-func TestParseDate(t *testing.T) {
-	for _, prop := range dateList {
-		out, err := parseDate(prop)
-
-		if err != nil {
-			t.Error(err)
-		} else {
-			t.Logf("in: %+v, out: %s", prop.Value, out)
-		}
+		{
+			name: "Property with date-time layout",
+			args: args{
+				prop: &Property{
+					Name: "DSTART",
+					Params: map[string]*Param{
+						"VALUE": &Param{
+							Values: []string{"DATE-TIME"},
+						},
+					},
+					Value: "19980119T070000",
+				},
+				l: time.Local,
+			},
+			want: time.Date(1998, time.January, 19, 7, 0, 0, 0, time.Local),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseDate(tt.args.prop, tt.args.l)
+			if (err != nil) != false {
+				t.Errorf("parseDate() error = %v, wantErr %v", err, false)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parseDate() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

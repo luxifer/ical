@@ -58,11 +58,13 @@ type parser struct {
 	c         *Calendar
 	v         *Event
 	a         *Alarm
+	location  *time.Location
 }
 
 // Parse transforms the raw iCalendar into a Calendar struct
-// It's to the caller to close the io.Reader
-func Parse(r io.Reader) (*Calendar, error) {
+// It's up to the caller to close the io.Reader
+// if the time.Location parameter is not set, it will default to the system location
+func Parse(r io.Reader, l *time.Location) (*Calendar, error) {
 	p := &parser{}
 	p.c = NewCalendar()
 	p.scope = scopeCalendar
@@ -72,6 +74,12 @@ func Parse(r io.Reader) (*Calendar, error) {
 		return nil, err
 	}
 
+	if l == nil {
+		l = time.Local
+	}
+
+	p.location = l
+
 	text := unfold(string(bytes))
 	p.lex = lex(text)
 	return p.parse()
@@ -79,7 +87,9 @@ func Parse(r io.Reader) (*Calendar, error) {
 
 // NewCalendar creates an empty Calendar
 func NewCalendar() *Calendar {
-	c := &Calendar{}
+	c := &Calendar{
+		Calscale: "GREGORIAN",
+	}
 	c.Properties = make([]*Property, 0)
 	c.Events = make([]*Event, 0)
 	return c
@@ -197,7 +207,7 @@ func (p *parser) parse() (*Calendar, error) {
 // scanDelimiter switch scope and validate related component
 func (p *parser) scanDelimiter(delim item) error {
 	if delim.typ == itemBeginVEvent {
-		if err := validateCalendar(p.c); err != nil {
+		if err := p.validateCalendar(p.c); err != nil {
 			return err
 		}
 
@@ -214,7 +224,7 @@ func (p *parser) scanDelimiter(delim item) error {
 			return fmt.Errorf("found %s, expeced END:VALARM", delim)
 		}
 
-		if err := validateEvent(p.v); err != nil {
+		if err := p.validateEvent(p.v); err != nil {
 			return err
 		}
 
@@ -236,7 +246,7 @@ func (p *parser) scanDelimiter(delim item) error {
 	}
 
 	if delim.typ == itemEndVAlarm {
-		if err := validateAlarm(p.a); err != nil {
+		if err := p.validateAlarm(p.a); err != nil {
 			return err
 		}
 
@@ -366,7 +376,7 @@ func (p *parser) scanValues(param *Param) error {
 }
 
 // validateCalendar validate calendar props
-func validateCalendar(c *Calendar) error {
+func (p *parser) validateCalendar(c *Calendar) error {
 	requiredCount := 0
 	for _, prop := range c.Properties {
 		if prop.Name == "PRODID" {
@@ -396,7 +406,7 @@ func validateCalendar(c *Calendar) error {
 }
 
 // validateEvent validate event props
-func validateEvent(v *Event) error {
+func (p *parser) validateEvent(v *Event) error {
 	requiredCount := 0
 	uniqueCount := make(map[string]int)
 	for _, prop := range v.Properties {
@@ -407,13 +417,13 @@ func validateEvent(v *Event) error {
 		}
 
 		if prop.Name == "DTSTAMP" {
-			v.Timestamp, _ = time.Parse(dateTimeLayoutUTC, prop.Value)
+			v.Timestamp, _ = parseDate(prop, p.location)
 			uniqueCount["DTSTAMP"]++
 			requiredCount++
 		}
 
 		if prop.Name == "DTSTART" {
-			v.StartDate, _ = parseDate(prop)
+			v.StartDate, _ = parseDate(prop, p.location)
 			uniqueCount["DTSTART"]++
 			requiredCount++
 		}
@@ -422,7 +432,7 @@ func validateEvent(v *Event) error {
 			if hasProperty("DURATION", v.Properties) {
 				return fmt.Errorf("Either \"dtend\" or \"duration\" MAY appear")
 			}
-			v.EndDate, _ = parseDate(prop)
+			v.EndDate, _ = parseDate(prop, p.location)
 			uniqueCount["DTEND"]++
 		}
 
@@ -462,7 +472,7 @@ func validateEvent(v *Event) error {
 }
 
 // validateAlarm validate alarm props
-func validateAlarm(a *Alarm) error {
+func (p *parser) validateAlarm(a *Alarm) error {
 	requiredCount := 0
 	uniqueCount := make(map[string]int)
 	for _, prop := range a.Properties {
@@ -502,8 +512,12 @@ func hasProperty(name string, properties []*Property) bool {
 	return false
 }
 
-// parseDate transform an ical date into a time.Time
-func parseDate(prop *Property) (time.Time, error) {
+// parseDate transform an ical date property into a time.Time
+func parseDate(prop *Property, l *time.Location) (time.Time, error) {
+	if strings.HasSuffix(prop.Value, "Z") {
+		return time.Parse(dateTimeLayoutUTC, prop.Value)
+	}
+
 	if tz, ok := prop.Params["TZID"]; ok {
 		loc, _ := time.LoadLocation(tz.Values[0])
 		return time.ParseInLocation(dateTimeLayoutLocalized, prop.Value, loc)
@@ -511,20 +525,14 @@ func parseDate(prop *Property) (time.Time, error) {
 
 	layout := dateTimeLayoutLocalized
 
-	if strings.HasSuffix(prop.Value, "Z") {
-		return time.Parse(dateTimeLayoutUTC, prop.Value)
-	}
-
-	if len(prop.Value) == 15 {
-		return time.ParseInLocation(dateTimeLayoutLocalized, prop.Value, time.Local)
-	}
-
 	if val, ok := prop.Params["VALUE"]; ok {
 		switch val.Values[0] {
 		case "DATE":
 			layout = dateLayout
+		case "DATE-TIME":
+			layout = dateTimeLayoutLocalized
 		}
 	}
 
-	return time.Parse(layout, prop.Value)
+	return time.ParseInLocation(layout, prop.Value, l)
 }
