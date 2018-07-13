@@ -12,7 +12,8 @@ import (
 )
 
 // filename is an io.Reader
-calendar, err := ical.Parse(filename)
+// second parameter is a *time.Location which defaults to system local
+calendar, err := ical.Parse(filename, nil)
 ```
 
 ## TODO
