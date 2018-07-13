@@ -9,8 +9,8 @@ DTSTART:19960918T143000Z
 DTEND:19960920T220000Z
 STATUS:CONFIRMED
 CATEGORIES:CONFERENCE
-SUMMARY:Networld+Interop Conference
-DESCRIPTION:Networld+Interop Conference and Exhibit\nAtlanta World Congress Center\n Atlanta\, Georgia
+SUMMARY;FOO=bar,"baz":Networld+Interop Conference
+DESCRIPTION;ALTREP="cid:part1.0001@example.org":Networld+Interop Conference and Exhibit\nAtlanta World Congress Center\n Atlanta\, Georgia
 END:VEVENT
 BEGIN:VEVENT
 DTSTAMP:19960704T120000Z
