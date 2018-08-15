@@ -346,7 +346,7 @@ func lexValue(l *lexer) stateFn {
 Loop:
 	for {
 		switch r := l.next(); {
-		case unicode.IsGraphic(r):
+		case isValueChar(r):
 			// absorb
 		default:
 			l.backup()
@@ -370,6 +370,10 @@ func isQSafeChar(r rune) bool {
 
 func isSafeChar(r rune) bool {
 	return !unicode.IsControl(r) && r != '"' && r != ';' && r != ':' && r != ','
+}
+
+func isValueChar(r rune) bool {
+	return r == '\t' || (!unicode.IsControl(r) && utf8.ValidRune(r))
 }
 
 // item helpers
