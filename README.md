@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/luxifer/ical.svg?branch=master)](https://travis-ci.org/luxifer/ical)
 
-Golang iCalendar lexer/parser implementing [RFC 5545](https://tools.ietf.org/html/rfc5545).
+Golang iCalendar lexer/parser implementing [RFC 5545](https://tools.ietf.org/html/rfc5545). This project is heavily inspired of the talk [Lexical Scanning in Go](https://www.youtube.com/watch?v=HxaD_trXwRE) by Rob Pike.
 
 ## Usage
 
