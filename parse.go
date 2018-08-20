@@ -519,7 +519,13 @@ func parseDate(prop *Property, l *time.Location) (time.Time, error) {
 	}
 
 	if tz, ok := prop.Params["TZID"]; ok {
-		loc, _ := time.LoadLocation(tz.Values[0])
+		loc, err := time.LoadLocation(tz.Values[0])
+
+		// In case we are not able to load TZID location we default to UTC
+		if err != nil {
+			loc = time.UTC
+		}
+
 		return time.ParseInLocation(dateTimeLayoutLocalized, prop.Value, loc)
 	}
 
