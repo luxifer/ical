@@ -102,6 +102,22 @@ func Test_parseDate(t *testing.T) {
 			},
 			want: time.Date(1998, time.January, 19, 7, 0, 0, 0, time.Local),
 		},
+		{
+			name: "Datetime with bad timezone",
+			args: args{
+				prop: &Property{
+					Name: "DTSTART",
+					Params: map[string]*Param{
+						"TZID": &Param{
+							Values: []string{"Z"},
+						},
+					},
+					Value: "19980119T020000",
+				},
+				l: time.Local,
+			},
+			want: time.Date(1998, time.January, 19, 2, 0, 0, 0, time.UTC),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
