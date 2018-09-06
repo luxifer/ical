@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -419,11 +420,14 @@ func (p *parser) validateEvent(v *Event) error {
 		if prop.Name == "DTSTAMP" {
 			v.Timestamp, _ = parseDate(prop, p.location)
 			uniqueCount["DTSTAMP"]++
-			requiredCount++
+			//requiredCount++
 		}
 
 		if prop.Name == "DTSTART" {
 			v.StartDate, _ = parseDate(prop, p.location)
+			if !hasProperty("DTSTAMP", v.Properties) {
+				v.Timestamp = v.StartDate
+			}
 			uniqueCount["DTSTART"]++
 			requiredCount++
 		}
@@ -454,7 +458,7 @@ func (p *parser) validateEvent(v *Event) error {
 		}
 	}
 
-	if requiredCount != 3 {
+	if requiredCount != 2 {
 		return fmt.Errorf("missing either required property \"dtstamp / uid / dtstart /\"")
 	}
 
@@ -514,6 +518,10 @@ func hasProperty(name string, properties []*Property) bool {
 
 // parseDate transform an ical date property into a time.Time
 func parseDate(prop *Property, l *time.Location) (time.Time, error) {
+	if matched, _ := regexp.MatchString("\\d{8}", prop.Value); matched {
+		return time.ParseInLocation(dateLayout, prop.Value, l)
+	}
+
 	if strings.HasSuffix(prop.Value, "Z") {
 		return time.Parse(dateTimeLayoutUTC, prop.Value)
 	}
