@@ -407,25 +407,22 @@ func (p *parser) validateCalendar(c *Calendar) error {
 
 // validateEvent validate event props
 func (p *parser) validateEvent(v *Event) error {
-	requiredCount := 0
 	uniqueCount := make(map[string]int)
+
 	for _, prop := range v.Properties {
 		if prop.Name == "UID" {
 			v.UID = prop.Value
 			uniqueCount["UID"]++
-			requiredCount++
 		}
 
 		if prop.Name == "DTSTAMP" {
 			v.Timestamp, _ = parseDate(prop, p.location)
 			uniqueCount["DTSTAMP"]++
-			requiredCount++
 		}
 
 		if prop.Name == "DTSTART" {
 			v.StartDate, _ = parseDate(prop, p.location)
 			uniqueCount["DTSTART"]++
-			requiredCount++
 		}
 
 		if prop.Name == "DTEND" {
@@ -454,8 +451,16 @@ func (p *parser) validateEvent(v *Event) error {
 		}
 	}
 
-	if requiredCount != 3 {
-		return fmt.Errorf("missing either required property \"dtstamp / uid / dtstart /\"")
+	if p.c.Method == "" && v.Timestamp.IsZero() {
+		return fmt.Errorf("missing required property \"dtstamp\"")
+	}
+
+	if v.UID == "" {
+		return fmt.Errorf("missing required property \"uid\"")
+	}
+
+	if v.StartDate.IsZero() {
+		return fmt.Errorf("missing required property \"dtstart\"")
 	}
 
 	for key, value := range uniqueCount {
