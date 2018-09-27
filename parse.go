@@ -534,6 +534,10 @@ func parseDate(prop *Property, l *time.Location) (time.Time, error) {
 		return time.ParseInLocation(dateTimeLayoutLocalized, prop.Value, loc)
 	}
 
+	if len(prop.Value) == 8 {
+		return time.ParseInLocation(dateLayout, prop.Value, l)
+	}
+
 	layout := dateTimeLayoutLocalized
 
 	if val, ok := prop.Params["VALUE"]; ok {
