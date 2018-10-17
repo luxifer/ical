@@ -1,13 +1,14 @@
 package ical
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 )
 
-var calendarList = []string{"fixtures/example.ics", "fixtures/with-alarm.ics"}
+var calendarList = []string{"fixtures/example.ics", "fixtures/with-alarm.ics", "fixtures/facebookbirthday.ics"}
 
 func TestParse(t *testing.T) {
 	for _, filename := range calendarList {
@@ -16,7 +17,7 @@ func TestParse(t *testing.T) {
 		file.Close()
 
 		if err != nil {
-			t.Error(err)
+			t.Error(fmt.Errorf("%v on '%s'", err, filename))
 		}
 	}
 }
