@@ -81,6 +81,8 @@ func Parse(r io.Reader, l *time.Location) (*Calendar, error) {
 	p.location = l
 
 	text := unfold(string(bytes))
+
+	//	Lex
 	p.lex = lex(text)
 	return p.parse()
 }
@@ -126,7 +128,16 @@ func NewParam() *Param {
 
 // unfold convert multiple line value to one line
 func unfold(text string) string {
-	return strings.Replace(text, "\r\n ", "", -1)
+	newstring := text
+
+	//	Convert multiple line values to a single line:
+	newstring = strings.Replace(newstring, "\r\n ", "", -1)
+
+	//	Remove extra CRLF sequences
+	newstring = strings.Replace(newstring, "\r\n\r\n", "\r\n", -1)
+
+	//	Return the new string
+	return newstring
 }
 
 // next returns the next token.
