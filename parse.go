@@ -21,14 +21,15 @@ type Calendar struct {
 
 // An Event represent a VEVENT component in an iCalendar
 type Event struct {
-	Properties  []*Property
-	Alarms      []*Alarm
-	UID         string
-	Timestamp   time.Time
-	StartDate   time.Time
-	EndDate     time.Time
-	Summary     string
-	Description string
+	Properties    []*Property
+	Alarms        []*Alarm
+	UID           string
+	Timestamp     time.Time
+	StartDate     time.Time
+	EndDate       time.Time
+	Summary       string
+	Description   string
+	RecurringRule string
 }
 
 // An Alarm represent a VALARM component in an iCalendar
@@ -459,6 +460,11 @@ func (p *parser) validateEvent(v *Event) error {
 		if prop.Name == "DESCRIPTION" {
 			v.Description = prop.Value
 			uniqueCount["DESCRIPTION"]++
+		}
+
+		if prop.Name == "RRULE" {
+			v.RecurringRule = prop.Value
+			uniqueCount["RRULE"]++
 		}
 	}
 
