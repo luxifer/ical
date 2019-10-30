@@ -544,6 +544,11 @@ func parseDate(prop *Property, l *time.Location) (time.Time, error) {
 		switch val.Values[0] {
 		case "DATE":
 			layout = dateLayout
+
+			// Handle malformed DATE entries that use DATE-TIME format
+			if len(prop.Value) == len(dateTimeLayoutLocalized) {
+				layout = dateTimeLayoutLocalized
+			}
 		case "DATE-TIME":
 			layout = dateTimeLayoutLocalized
 		}
