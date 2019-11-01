@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var calendarList = []string{"fixtures/example.ics", "fixtures/with-alarm.ics", "fixtures/facebookbirthday.ics"}
+var calendarList = []string{"fixtures/example.ics", "fixtures/with-alarm.ics", "fixtures/facebookbirthday.ics", "fixtures/malformed-date.ics"}
 
 func TestParse(t *testing.T) {
 	for _, filename := range calendarList {
