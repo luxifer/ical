@@ -22,6 +22,20 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func BenchmarkParse(b *testing.B) {
+	for _, filename := range calendarList {
+		file, _ := os.Open(filename)
+		info, _ := file.Stat()
+
+		b.Run(filename, func(b *testing.B) {
+			b.SetBytes(info.Size())
+			for n := 0; n < b.N; n++ {
+				_, _ = Parse(file, nil)
+			}
+		})
+	}
+}
+
 func Test_parseDate(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	type args struct {
@@ -39,7 +53,7 @@ func Test_parseDate(t *testing.T) {
 				prop: &Property{
 					Name: "DTSTART",
 					Params: map[string]*Param{
-						"VALUE": &Param{
+						"VALUE": {
 							Values: []string{"DATE"},
 						},
 					},
@@ -55,7 +69,7 @@ func Test_parseDate(t *testing.T) {
 				prop: &Property{
 					Name: "DTSTART",
 					Params: map[string]*Param{
-						"TZID": &Param{
+						"TZID": {
 							Values: []string{"America/New_York"},
 						},
 					},
@@ -93,7 +107,7 @@ func Test_parseDate(t *testing.T) {
 				prop: &Property{
 					Name: "DSTART",
 					Params: map[string]*Param{
-						"VALUE": &Param{
+						"VALUE": {
 							Values: []string{"DATE-TIME"},
 						},
 					},
@@ -109,7 +123,7 @@ func Test_parseDate(t *testing.T) {
 				prop: &Property{
 					Name: "DTSTART",
 					Params: map[string]*Param{
-						"TZID": &Param{
+						"TZID": {
 							Values: []string{"Z"},
 						},
 					},

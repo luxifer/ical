@@ -1,12 +1,12 @@
 package ical
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 )
 
 func TestLex(t *testing.T) {
-	ical, _ := ioutil.ReadFile("fixtures/example.ics")
+	ical, _ := os.ReadFile("fixtures/example.ics")
 	lexer := lex(string(ical))
 
 	for {

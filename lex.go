@@ -61,15 +61,6 @@ const (
 	itemEndVAlarm
 )
 
-var key = map[string]itemType{
-	"BEGIN:VCALENDAR": itemBeginVCalendar,
-	"END:VCALENDAR":   itemEndVCalendar,
-	"BEGIN:VEVENT":    itemBeginVEvent,
-	"END:VEVENT":      itemEndVEvent,
-	"BEGIN:VALARM":    itemBeginVAlarm,
-	"END:VALARM":      itemEndVAlarm,
-}
-
 const eof = -1
 
 // stateFn represents the state of the scanner as a function that returns the next state.
