@@ -144,16 +144,6 @@ func (p *parser) backup() {
 	p.peekCount++
 }
 
-// peek returns but does not consume the next token.
-func (p *parser) peek() item {
-	if p.peekCount > 0 {
-		return p.token[p.peekCount-1]
-	}
-	p.peekCount = 1
-	p.token[0] = p.lex.nextItem()
-	return p.token[0]
-}
-
 // enterScope switch scope between Calendar, Event and Alarm
 func (p *parser) enterScope() {
 	p.scope++
