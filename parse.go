@@ -21,14 +21,15 @@ type Calendar struct {
 
 // An Event represent a VEVENT component in an iCalendar
 type Event struct {
-	Properties  []*Property
-	Alarms      []*Alarm
-	UID         string
-	Timestamp   time.Time
-	StartDate   time.Time
-	EndDate     time.Time
-	Summary     string
-	Description string
+	Properties    []*Property
+	Alarms        []*Alarm
+	UID           string
+	Timestamp     time.Time
+	StartDate     time.Time
+	EndDate       time.Time
+	Summary       string
+	Description   string
+	RecurringRule string
 }
 
 // An Alarm represent a VALARM component in an iCalendar
@@ -81,6 +82,8 @@ func Parse(r io.Reader, l *time.Location) (*Calendar, error) {
 	p.location = l
 
 	text := unfold(string(bytes))
+
+	//	Lex
 	p.lex = lex(text)
 	return p.parse()
 }
@@ -126,7 +129,16 @@ func NewParam() *Param {
 
 // unfold convert multiple line value to one line
 func unfold(text string) string {
-	return strings.Replace(text, "\r\n ", "", -1)
+	newstring := text
+
+	//	Convert multiple line values to a single line:
+	newstring = strings.Replace(newstring, "\r\n ", "", -1)
+
+	//	Remove extra CRLF sequences
+	newstring = strings.Replace(newstring, "\r\n\r\n", "\r\n", -1)
+
+	//	Return the new string
+	return newstring
 }
 
 // next returns the next token.
@@ -438,6 +450,11 @@ func (p *parser) validateEvent(v *Event) error {
 		if prop.Name == "DESCRIPTION" {
 			v.Description = prop.Value
 			uniqueCount["DESCRIPTION"]++
+		}
+
+		if prop.Name == "RRULE" {
+			v.RecurringRule = prop.Value
+			uniqueCount["RRULE"]++
 		}
 	}
 
